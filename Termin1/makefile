@@ -1,5 +1,5 @@
 # zu verwendete Quelldatei
-FILE = Termin1Aufgabe1
+FILE = Termin1Aufgabe4
 # Toolchain
 TOOLCHAIN = arm-elf-
 # Compiler
@@ -9,7 +9,7 @@ LINKER = ld
 # Debugger
 DEBUGGER = insight
 # Optimierungsstufe
-OPTI = 0
+OPTI = 3
 
 # Bauen
 all:

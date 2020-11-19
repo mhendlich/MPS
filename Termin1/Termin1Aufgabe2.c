@@ -1,11 +1,13 @@
 // Loesung zu Termin1
 // Aufgabe 2
-// Namen: ___________; ____________
+// Namen: ___________; ____________ 
 // Matr.: ___________; ____________
 // vom:   ___________
 
-
-int main(void) {
-
-   return (0);
+int a;
+int b = 17;
+int main (void)
+{
+	a = 5;
+	return (0);
 }

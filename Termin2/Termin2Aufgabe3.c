@@ -80,10 +80,10 @@ inline void SetLED(uint16_t leds, IO_States state)
 	// Aufgabe: Warum gehen die LEDs an, wenn man den Output cleared?
 	if (state == IO_On){
 		piobaseB->PIO_CODR = leds;
-		}
+	}
 	else{
 		piobaseB->PIO_SODR = leds;
-		}
+	}
 	
 }
 
@@ -106,11 +106,27 @@ void PeripheryInit(void)
 int main(void)
 {
 	PeripheryInit();
+	StructPIO* piobaseB = PIOB_BASE;	// Basisadresse der PIOB
+	int count = 0;
   
 	while(1)
 	{
-		SetLED(ALL_LEDS, IO_On);
-		SetLED(ALL_LEDS, IO_Off);
+		if(IsKeydown(IO_SW1)){
+			SetLED(LED1, IO_On);
+		}
+		else if (IsKeydown(IO_SW2)){
+			SetLED(LED1,IO_Off);
+		}
+		
+		count++;
+
+		if(count == 200000){
+ 			SetLED(LED2, IO_On);
+		}
+		else if(count == 400000){
+			SetLED(LED2, IO_Off);
+			count = 0;
+		}
 	}
     
   	return 0;

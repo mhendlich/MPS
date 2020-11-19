@@ -12,7 +12,7 @@ void putchar(int);
 unsigned char getchar(void);
 void init_ser(void);
 void puts(char*);
-unsigned int gets(char*,int);
-unsigned int getpw(char*,int);
+unsigned int gets(char*, int);
+unsigned int getpw(char*, int);
 
 #endif /* ser_io_h */

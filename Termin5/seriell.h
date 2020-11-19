@@ -8,13 +8,12 @@
 #ifndef seriell_h
 #define seriell_h
 
-#include "../h/pmc.h"
 #include "../h/pio.h"
+#include "../h/pmc.h"
 #include "../h/usart.h"
 
-//void init_ser(void);
-//void putc(char);
-//char getc(void);
+// void init_ser(void);
+// void putc(char);
+// char getc(void);
 
 #endif /* seriell_h */
-

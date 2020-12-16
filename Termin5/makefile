@@ -7,6 +7,9 @@ TOOLCHAIN = arm-elf
 COMPILER = gcc
 # Linker/Binder
 LINKER = ld
+# Pfad zur libgcc.a
+# fuer Virtuell_RA_MPS_WS2020
+LIBGCC = /opt/mpstools/lib/gcc/arm-v4t-eabi/4.4.5/libgcc.a
 # Debugger
 DEBUGGER = insight
 # Optimierungsstufe
@@ -30,8 +33,7 @@ all:
 	$(TOOLCHAIN)-$(COMPILER) -c -g -O$(OPTI) ../boot/boot_ice.S -o boot_ice.o -I ../h
 	
 # Binden fuer die RAM-Version 
-#	$(TOOLCHAIN)$(LINKER) -Ttext 0x02000000 -O$(OPTI) boot_ice.o swi.o $(FILE).o -o $(FILE).elf  /opt/$(TOOLCHAIN)/gcc/arm-eb63-elf/4.4.6/lib/libgcc.a
-	$(TOOLCHAIN)-$(LINKER) -Ttext 0x02000000 -O$(OPTI) boot_ice.o seriell.o ser_io.o swi.o $(FILE).o -o $(FILE).elf
+	$(TOOLCHAIN)-$(LINKER) -Ttext 0x02000000 -O$(OPTI) boot_ice.o swi.o seriell.o ser_io.o $(FILE).o -o $(FILE).elf $(LIBGCC)
 
 # Debugger starten
 debug:
@@ -39,10 +41,10 @@ debug:
 
 # Aufraeumen
 clean:
-	rm *.o
-	rm *.s
-	rm *.elf
-	rm *.rom
+	rm -f *.o
+	rm -f *.s
+	rm -f *.elf
+	rm -f *.rom
 
 # BDI2000 zuruecksetzen
 bdireset:

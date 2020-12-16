@@ -1,5 +1,5 @@
 # Quelldatei
-FILE = Termin4Aufgabe1
+FILE = Termin4Aufgabe4
 # Toolchain
 TOOLCHAIN = arm-elf-
 # Compiler

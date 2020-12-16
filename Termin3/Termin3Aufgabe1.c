@@ -51,14 +51,16 @@ void taste_irq_handler (void)
   	StructPIO* piobaseB = PIOB_BASE;		// Basisadresse PIO B
   	StructAIC* aicbase  = AIC_BASE;			// Basisadresse des Advanced Interrupt Controller
 	StructTC* timerbase3 = TCB3_BASE;
+	StructPMC* pmcbase = PMC_BASE;
 	
 	if(IsKeydown(IO_SW1)){
 		piobaseB->PIO_PER = (1<<PIOTIOA3);
-		timerbase3->TC_CCR = TC_CLKDIS;
+		PMC_BASE->PMC_PCDR = 0x200;
 	}
 	else if (IsKeydown(IO_SW2)){
+		PMC_BASE->PMC_PCER = 0x200;
 		piobaseB->PIO_PDR = (1<<PIOTIOA3);
-		timerbase3->TC_CCR = TC_CLKEN;
+
 	}
 	
 	aicbase->AIC_EOICR = piobaseB->PIO_ISR;	//__

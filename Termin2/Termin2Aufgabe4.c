@@ -106,7 +106,7 @@ void InterruptInit(void)
 	aicbase->AIC_SVR[PIOB_ID] = (unsigned int) taste_irq_handler;	// Set the irq-handler for interrupts raised by PIOB
 	aicbase->AIC_SMR[PIOB_ID] = AIC_PRIOR;				// Set the highest priority for interrupts from PIOB
 
-				aicbase->AIC_IECR = 1 << 14;//weiß nicht ob das hier hin gehört
+	aicbase->AIC_IECR = 1 << PIOB_ID;
 
 	piobaseB->PIO_IER = KEY1 | KEY2;	// Enables interrupts in PIOB for the first two switches
 }
@@ -141,16 +141,16 @@ int main(void)
 	{
 		count++;
 
-		if(count == 200000){
+		if(count == 400000){
  			SetLED(LED2, IO_On);
 		}
-		else if(count == 400000){
+		else if(count == 800000){
 			SetLED(LED2, IO_Off);
 			count = 0;
 		}
 	}
 
-	aicbase->AIC_IDCR = 1 << 14; //weiß nicht ob das hier hin gehört
-	aicbase->AIC_ICCR = 1 << 14;
+	aicbase->AIC_IDCR = 1 << PIOB_ID;
+	aicbase->AIC_ICCR = 1 << PIOB_ID;
 	return 0;
 }

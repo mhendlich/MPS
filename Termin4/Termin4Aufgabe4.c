@@ -42,7 +42,9 @@ void Timer_Init(void)
 int MessungderMasse(){
 	StructTC* tcbase4 = TCB4_BASE;
 	StructTC* tcbase5 = TCB5_BASE;
-	
+	int buf;
+	buf = tcbase4->TC_SR;
+	buf = tcbase5->TC_SR;
 	tcbase4->TC_CCR = TC_SWTRG;
 	tcbase5->TC_CCR = TC_SWTRG;
 	

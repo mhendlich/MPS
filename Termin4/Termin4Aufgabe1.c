@@ -49,6 +49,9 @@ int main(void)
 	
 	while(1)
 	{
+		int buf;
+		buf = tcbase4->TC_SR;
+		buf = tcbase5->TC_SR;
 		tcbase4->TC_CCR	= TC_SWTRG;
 		tcbase5->TC_CCR	= TC_SWTRG;
 		

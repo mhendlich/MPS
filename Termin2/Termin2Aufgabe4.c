@@ -21,6 +21,12 @@ typedef enum
 	IO_Off, IO_On
 } IO_States;
 
+/*
+ * Liefert den Status der angegebenen Taste.
+ * @param keyNr	Die Taste, dessen Status geprÃ¼ft werden soll (SW1-SW3)
+ * @return	Gibt 1 zurÃ¼ck, wenn die Taste gedrÃ¼ckt wird, ansonsten 0.
+ * @example	if ( IsKeydown(IO_SW2) ) { ... }
+ */
 inline uint8_t IsKeydown(const IO_Switches keyNr)
 {
 	StructPIO* piobaseB = PIOB_BASE;	
@@ -41,37 +47,40 @@ inline uint8_t IsKeydown(const IO_Switches keyNr)
 		if (piobaseB->PIO_OSR & key)
 			piobaseB->PIO_ODR = key;
 	}
-
-	// Aufgabe: Hier wurde das falsche PIO-Register genutzt! 
-	// Berichtigen Sie diesen Fehler, damit der Pin-Status ausgelesen wird.
-	// Beachten Sie zudem, ob die Tasten high- oder low-active sind!
+	
+	// Ist der PIN für gewünschen Key low?
 	if ( ( ~piobaseB->PIO_PDSR & key ) )
-		return 1;
+		return 1;	//true, Taste ist gedrückt
 
 	return 0;
 }
 
+/**
+ * Setzt den Zustand der LEDs (an/aus).
+ * @param leds	BinÃ¤re representation der gewÃ¼nschten LED(s)
+ * @param state	GewÃ¼nschter Zustand (On/Off)
+ * @example	SetLED( (LED2 | LED5), IO_On)
+ */
 inline void SetLED(uint16_t leds, IO_States state)
 {
 	StructPIO* piobaseB = PIOB_BASE;
 	
-	// Sind die gewünschten LEDs schon unter der Kontrolle der PIO?
+	// Sind die gewÃ¼nschten LEDs schon unter der Kontrolle der PIO?
 	if (~piobaseB->PIO_PSR & leds)
 	{
 		piobaseB->PIO_PER = leds;
 
-		// Sind die gewünschten LEDs als output konfiguriert?
+		// Sind die gewÃ¼nschten LEDs als output konfiguriert?
 		if (~piobaseB->PIO_OSR & leds)
 			piobaseB->PIO_OER = leds;
 	}
 
-	// Aufgabe: Warum gehen die LEDs an, wenn man den Output cleared?
 	if (state == IO_On){
-		piobaseB->PIO_CODR = leds;
-	}
+		piobaseB->PIO_CODR = leds; 	// Output clearen -> an, low active
+		}
 	else{
-		piobaseB->PIO_SODR = leds;
-	}
+		piobaseB->PIO_SODR = leds;	// Output setzen -> aus, low active
+		}
 	
 }
 
@@ -79,26 +88,23 @@ void taste_irq_handler (void) __attribute__ ((interrupt));
 
 void taste_irq_handler (void)
 {
-	StructAIC* aicbase = AIC_BASE;
-	StructPIO* piobaseB = PIOB_BASE;
+	StructAIC* aicbase = AIC_BASE;		// Basisadresse des AIC
+	StructPIO* piobaseB = PIOB_BASE;	// Basisadresse der PIOB
 	
 	if(IsKeydown(IO_SW1)){
-		SetLED(LED1, IO_On);
+		SetLED(LED1, IO_On);		// LED1 on if key 1 is pressed
 	}
 	else if (IsKeydown(IO_SW2)){
-		SetLED(LED1,IO_Off);
+		SetLED(LED1,IO_Off);		// LED1 on if key 2 is pressed
 	}
 	
-	aicbase->AIC_EOICR = piobaseB->PIO_ISR;
+	aicbase->AIC_EOICR = piobaseB->PIO_ISR;	// End of interrupt
 }
 
 void InterruptInit(void)
 {
-	StructAIC* aicbase = AIC_BASE;
-	StructPIO* piobaseB = PIOB_BASE;
-
-	// Aufgabe: Setzen Sie die richtigen Register ein, indem Sie die Kommentare
-	// in den jeweiligen Zeilen als Hinweise nehmen!
+	StructAIC* aicbase = AIC_BASE;		// Basisadresse des AIC
+	StructPIO* piobaseB = PIOB_BASE;	// Basisadresse der PIOB
 
 	aicbase->AIC_IDCR = (1 << PIOB_ID);	// Disable all interrupt handling for PIOB
 	aicbase->AIC_ICCR = (1 << PIOB_ID);	// Clear all pending interrupts from PIOB
@@ -106,7 +112,7 @@ void InterruptInit(void)
 	aicbase->AIC_SVR[PIOB_ID] = (unsigned int) taste_irq_handler;	// Set the irq-handler for interrupts raised by PIOB
 	aicbase->AIC_SMR[PIOB_ID] = AIC_PRIOR;				// Set the highest priority for interrupts from PIOB
 
-	aicbase->AIC_IECR = 1 << PIOB_ID;
+	aicbase->AIC_IECR = 1 << PIOB_ID;	// Enable interrupt handling for PIOB
 
 	piobaseB->PIO_IER = KEY1 | KEY2;	// Enables interrupts in PIOB for the first two switches
 }
@@ -116,7 +122,7 @@ void PeripheryInit(void)
 	StructPMC* pmcbase = PMC_BASE;		// Basisadresse des PMC
 	StructPIO* piobaseB = PIOB_BASE;	// Basisadresse der PIOB
   	
-	pmcbase->PMC_PCER = 0x4000;
+	pmcbase->PMC_PCER = 0x4000;		// Peripheral Clock für PIOB enablen
 	
 	// LEDS initialisieren
 	piobaseB->PIO_PER = ALL_LEDS;		// Enable PIO for all LEDs
@@ -133,7 +139,7 @@ int main(void)
 	PeripheryInit();
 
 	StructPIO* piobaseB = PIOB_BASE;	// Basisadresse der PIOB
-	StructAIC* aicbase = AIC_BASE;
+	StructAIC* aicbase = AIC_BASE;		// Basisadresse des AIC
 	
 	int count = 0;
   
@@ -149,8 +155,5 @@ int main(void)
 			count = 0;
 		}
 	}
-
-	aicbase->AIC_IDCR = 1 << PIOB_ID;
-	aicbase->AIC_ICCR = 1 << PIOB_ID;
 	return 0;
 }

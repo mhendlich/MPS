@@ -37,21 +37,19 @@ inline uint8_t IsKeydown(const IO_Switches keyNr)
 
 	const uint8_t key = keys[keyNr];
 
-	// Ist die gewÃ¼nschte Tasten schon unter der Kontrolle der PIO?
+	// Ist die gewünschte Tasten schon unter der Kontrolle der PIO?
 	if (~piobaseB->PIO_PSR & key)
 	{
 		piobaseB->PIO_PER = key;
 
-		// Ist die gewÃ¼nschte Taste als input konfiguriert?
+		// Ist die gewünschte Taste als input konfiguriert?
 		if (piobaseB->PIO_OSR & key)
 			piobaseB->PIO_ODR = key;
 	}
-
-	// Aufgabe: Hier wurde das falsche PIO-Register genutzt! 
-	// Berichtigen Sie diesen Fehler, damit der Pin-Status ausgelesen wird.
-	// Beachten Sie zudem, ob die Tasten high- oder low-active sind!
-	if ( ( ~piobaseB->PIO_PDSR & key ) ) //wenn low-active pdsr invertieren
-		return 1;
+	
+	// Ist der PIN für gewünschen Key low?
+	if ( ( ~piobaseB->PIO_PDSR & key ) )
+		return 1;	//true, Taste ist gedrückt
 
 	return 0;
 }
@@ -77,22 +75,20 @@ inline void SetLED(uint16_t leds, IO_States state)
 			piobaseB->PIO_OER = leds;
 	}
 
-	// Aufgabe: Warum gehen die LEDs an, wenn man den Output cleared?
 	if (state == IO_On){
-		piobaseB->PIO_CODR = leds;
-	}
+		piobaseB->PIO_CODR = leds; 	// Output clearen -> an, low active
+		}
 	else{
-		piobaseB->PIO_SODR = leds;
-	}
+		piobaseB->PIO_SODR = leds;	// Output setzen -> aus, low active
+		}
 	
 }
-
 void PeripheryInit(void)
 {
 	StructPMC* pmcbase = PMC_BASE;		// Basisadresse des PMC
 	StructPIO* piobaseB = PIOB_BASE;	// Basisadresse der PIOB
   	
-	pmcbase->PMC_PCER = 0x4000;
+	pmcbase->PMC_PCER = 0x4000;		// Peripheral Clock für PIOB enablen
 	
 	// LEDS initialisieren
 	piobaseB->PIO_PER = ALL_LEDS;		// Enable PIO for all LEDs

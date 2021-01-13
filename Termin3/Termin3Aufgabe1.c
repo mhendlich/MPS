@@ -11,6 +11,16 @@
 #include "../h/pio.h"
 #include "../h/aic.h"
 
+typedef enum  
+{ 
+	IO_SW1, IO_SW2, IO_SW3 
+} IO_Switches;
+
+typedef enum
+{
+	IO_Off, IO_On
+} IO_States;
+
 inline uint8_t IsKeydown(const IO_Switches keyNr)
 {
 	StructPIO* piobaseB = PIOB_BASE;	

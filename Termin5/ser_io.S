@@ -19,7 +19,7 @@
 	.type	inits,function
 inits:
 	swi	0x100
-	bx	lr	@ Rücksprung
+	bx	lr	@ Rï¿½cksprung
 
 @ Funktion
 	.text
@@ -31,7 +31,7 @@ putc:
 	ldr	r0, =Zeichen	@ Zeiger holen
 	str	r1, [r0]	@ Zeichen unter Zeiger ablegen
 	swi 	0x200		@ 
-	ldr	r1, =Zeichen	@ Zeiger holen
+	ldr	r1, =Zeichen	@ Zeiger holen @ holt gecachedes zeichen nochmals (falls putch 0 zurÃ¼ck gegeben hat)
 	ldr	r0, [r1]	@ Zeichen aus Zeiger holen
 	bx 	lr
 
@@ -54,10 +54,51 @@ getc:
 	.type	puts,function
 puts:
 	stmfd sp!,{lr}	@ Retten der Register
+	
+	mov r2, 0 // link flag help this is bad code
+	mov r1, r0
 
-// Hier muß Ihr Code eingefügt werden.
+outer_loop:
+	ldr r0, [r1]
+	cmp r0, 0
+	beq end_outer_loop
 
-	ldmfd sp!,{pc}	@ Rücksprung
+	cmp r0, 0x5c // \
+	bne write
+
+	ldr r0, [r1, #1]
+	cmp r0, 0x6e // n
+	ldrne r0, [r1]
+	bne write
+
+	mov r0, 0xd
+	mov r2, 1 // link flag
+	bl write
+
+	mov r0, 0xa
+	bl write
+	mov r2, 1 // link flag
+
+	add r1, r1, #2
+	b outer_loop
+
+write:
+	push {r1}
+	bl putc	
+	pop {r1}
+	 
+	cmp r0, 0
+	beq write
+
+	cmp r2, 1
+	mov r2, 0
+	bxeq lr
+	
+	add r1, 1
+	b 	outer_loop
+
+end_outer_loop:
+	ldmfd sp!,{pc}	@ Rï¿½cksprung
 
 @ Funktion
 	.text
@@ -67,9 +108,9 @@ puts:
 gets:
 	stmfd	sp!,{lr}	@ Retten der Register
 	
-// Hier könnte Ihr Code eingefügt werden!
+// Hier kï¿½nnte Ihr Code eingefï¿½gt werden!
 
-	ldmfd 	sp!,{pc}	@ Rücksprung
+	ldmfd 	sp!,{pc}	@ Rï¿½cksprung
 	
 	.data
 Zeichen:	.word 0			

@@ -19,7 +19,7 @@ void putstring(char* );
 
 #define 	DEFAULT_BAUD 38400
 #define 	CLOCK_SPEED 25000000
-//US_BAUD =  (CLOCK_SPEED / (16*(DEFAULT_BAUD))	// 25MHz / ( 16 * 38400) = 40.69  -> 41 -> 0x29
+// US_BAUD =  (CLOCK_SPEED / (16*(DEFAULT_BAUD))	// 25MHz / ( 16 * 38400) = 40.69  -> 41 -> 0x29
 #define 	US_BAUD 0x29
 
 // Initialisiert die serielle Schnittstelle USART0
@@ -30,19 +30,19 @@ int init_ser()
 	StructPMC* pmcbase  = PMC_BASE;	
 	StructUSART* usartbase0 = USART0;	
 	
-	pmcbase->PMC_PCER = 0x4;	// Clock für US0 einschalten
+	pmcbase->PMC_PCER = 0x4;	// Clock fï¿½r US0 einschalten
 	piobaseA->PIO_PDR = 0x18000;	// US0 TxD und RxD 
 	usartbase0->US_CR = 0xa0;	// TxD und RxD disable
-	usartbase0->US_BRGR = US_BAUD;	// Baud Rate Generator Register 
-	usartbase0->US_MR = 0x8c0;	// Keine Parität, 8 Bit, MCKI
+	usartbase0->US_BRGR = US_BAUD;	// Baud Rate Generator Register 38,1khz???
+	usartbase0->US_MR = 0x8c0;	// Keine Paritï¿½t, 8 Bit, MCKI
 	usartbase0->US_CR = 0x50;	// TxD und RxD enable
 
 	return 0;
 }
 
-// Gibt wenn möglich ein Zeichen auf die serielle Schnittstelle aus
-// und liefert das Zeichen wieder zurück
-// wenn eine Ausgabe nicht möglich war wird eine 0 zurück geliefert
+// Gibt wenn mï¿½glich ein Zeichen auf die serielle Schnittstelle aus
+// und liefert das Zeichen wieder zurï¿½ck
+// wenn eine Ausgabe nicht mï¿½glich war wird eine 0 zurï¿½ck geliefert
 
 char putch(char Zeichen) 
 {
@@ -59,7 +59,7 @@ char putch(char Zeichen)
 	return Zeichen;
 }
 
-// Gibt entweder ein empfangenes Zeichen oder eine 0 zurück
+// Gibt entweder ein empfangenes Zeichen oder eine 0 zurï¿½ck
 char getch(void) 
 {
 	StructUSART* usartbase0 = USART0;	
@@ -84,11 +84,27 @@ void putstring(char* String)
 
 	while( String[i] != 0)
 	{
-		while(!(putch (String[i])));
+		while(!(putch (String[i]))) {
+
+		}
 		i = i + 1;
 	}
 
 }
 
+char* signedIntToString(int value) {
+	int mod = 10;
+	char* reverseWord;
+	while (mod < value * 10) {
+		mod = mod * 10;
+	}
+
+	char buffer[100];
+
+	while (mod >= 10) {
+		int result = (value % mod) / (mod / 10);
+		mod /= 10;
+	}
 
 
+}

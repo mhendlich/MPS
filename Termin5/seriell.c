@@ -93,9 +93,11 @@ void signedIntToString(int value, char* targetString) {
    int length = getIntLength(value);
    int isNegative = value < 0;
 
+   long longValue = value;
+
    if(isNegative) {
       *buf = '-';
-      value *= (-1);
+      longValue *= (-1);
    } else {
       length--;
    }
@@ -104,7 +106,7 @@ void signedIntToString(int value, char* targetString) {
    long mod = 10;
 
    while(mod <= 100000000000) {
-      int result = (value % mod) / (mod / 10);
+      int result = (longValue % mod) / (mod / 10);
       *buf-- = 48 + result;
       if(buf < targetString || (isNegative && buf <= targetString)) {
          return;

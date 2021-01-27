@@ -55,29 +55,29 @@ getc:
 puts:
 	stmfd sp!,{lr}	@ Retten der Register
 	
-	mov r2, 0 // link flag help this is bad code
+	mov r2, #0 // link flag help this is bad code
 	mov r1, r0
 
 outer_loop:
 	ldr r0, [r1]
-	cmp r0, 0
+	cmp r0, #0
 	beq end_outer_loop
 
-	cmp r0, 0x5c // \
+	cmp r0, #0x5c // \
 	bne write
 
 	ldr r0, [r1, #1]
-	cmp r0, 0x6e // n
+	cmp r0, #0x6e // n
 	ldrne r0, [r1]
 	bne write
 
-	mov r0, 0xd
-	mov r2, 1 // link flag
+	mov r0, #0xd
+	mov r2, #1 // link flag
 	bl write
 
-	mov r0, 0xa
+	mov r0, #0xa
 	bl write
-	mov r2, 1 // link flag
+	mov r2, #1 // link flag
 
 	add r1, r1, #2
 	b outer_loop
@@ -87,14 +87,14 @@ write:
 	bl putc	
 	pop {r1}
 	 
-	cmp r0, 0
+	cmp r0, #0
 	beq write
 
-	cmp r2, 1
-	mov r2, 0
+	cmp r2, #1
+	mov r2, #0
 	bxeq lr
 	
-	add r1, 1
+	add r1, #1
 	b 	outer_loop
 
 end_outer_loop:

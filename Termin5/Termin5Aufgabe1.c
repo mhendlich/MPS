@@ -20,6 +20,15 @@ int main(void) {
    putc(i);
    // String ausgeben
    puts("Hallo! \n");
+   char str[12] = "";
+   signedIntToString( -1234, str);
+   putstring(str);
+   str[12] = "";
+      signedIntToString( 2147483647, str);
+   putstring(str);
+   str[12] = "";
+      signedIntToString(-2147483648, str);
+   putstring(str);
 
    return 0;
 }

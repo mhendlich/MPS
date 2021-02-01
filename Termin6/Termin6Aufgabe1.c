@@ -193,8 +193,8 @@ int MessungderMasse() {
    while(!(tcbase5->TC_SR & 0x40))
       ; // Capture Register B wurde geladen Messung abgeschlossen
 
-   int captureRA7 = tcbase4->TC_RA; //
-   int captureRB7 = tcbase4->TC_RB;
+   int captureRA7 = tcbase5->TC_RA; //
+   int captureRB7 = tcbase5->TC_RB;
    int capturediff7 = abs(captureRB7 - captureRA7);
 
    return (C1 * (((float)capturediff4 / capturediff7) - 1) - C2);
@@ -251,38 +251,42 @@ int main(void) {
       int brutto = 0;
       int netto = 0;
 
-      putstring("Moin\n Drücken sie die Taste 1 um fortzufahren");
+      putstring("Moin\r\n Drücken sie die Taste 1 um fortzufahren\r\n");
 
 
       // wait for interrupt SW1 that starts the tara step
       while(step == 1) {
+      step=2;
       }
 
-      putstring("Bitte legen sie das Tara-Gewicht auf\n");
-      putstring("Klicken sie danach die Taste 2 um den Wiegevorgang der Münzen zu starten\n");
+      putstring("Bitte legen sie das Tara-Gewicht auf\r\n");
+      putstring("Klicken sie danach die Taste 2 um den Wiegevorgang der Münzen zu starten\r\n");
 
       // repeat measurement until SW2 is pressed (which sets step to 3)
+      int i = 0;
       long taraMeasures = 0;
       long taraMeasurementsSum = 0;
       while(step == 2) {
          taraMeasurementsSum += MessungderMasse();
          taraMeasures++;
          tara = taraMeasurementsSum / taraMeasures;
+	 i++;
+	 if(i==10)step=3;
       };
 
-      putstring("Bitte legen sie ihre Münzen auf\n");
-      putstring("Klicken sie danach die Taste 3 um den Wiegevorgang abzuschließen\n");
+      putstring("Bitte legen sie ihre Münzen auf\r\n");
+      putstring("Klicken sie danach die Taste 3 um den Wiegevorgang abzuschließen\r\n");
 
       // wait for interrupt SW3 that ends the weighting process
       while(step == 3) {
          brutto = MessungderMasse();
          netto = brutto - tara;
 
-         char* nettoString;
+         char nettoString[12] = "";
          signedIntToString(netto, nettoString);
          putstring("Netto: ");
          putstring(nettoString);
-         putstring("\n");
+         putstring("\r\n");
 
          setLEDs(netto);
       }
@@ -298,9 +302,9 @@ int main(void) {
 
       putstring("Tara: ");
       putstring(taraString);
-      putstring("\nBrutto: ");
+      putstring("\r\nBrutto: ");
       putstring(bruttoString);
-      putstring("\nNetto: ");
+      putstring("\r\nNetto: ");
       putstring(nettoString);
 
       step = 1;
@@ -308,18 +312,4 @@ int main(void) {
 
 
    return 0;
-}
-
-int intToBinary(int i, char* target) {
-   int n = i;
-   int r;
-   do {
-      r = n % 2;
-      if(r == 1)
-         target = 1;
-      else
-         target = 0;
-      n = n / 2;
-      target++;
-   } while(n > 0);
 }

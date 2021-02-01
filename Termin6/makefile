@@ -25,7 +25,7 @@ all:
 
 # Erzeugen der benoetitgen Objektdateien
 # eigener SoftWareInterrupt-Handler
-	$(TOOLCHAIN)$(COMPILER) -c -g -O$(OPTI) ../boot/swi.S -o swi.o -I ../h
+	$(TOOLCHAIN)-$(COMPILER) -c -g -O$(OPTI) ../boot/swi.S -o swi.o -I ../h
 	$(TOOLCHAIN)-$(COMPILER) -c -g -O$(OPTI) ../boot/boot_ice.S -o boot_ice.o -I ../h
 	
 # Binden fuer die RAM-Version 

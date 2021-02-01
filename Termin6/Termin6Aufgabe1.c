@@ -6,6 +6,11 @@
 const static int C1 = 2000;
 const static int C2 = 0;
 
+#define DEFAULT_BAUD 38400
+#define CLOCK_SPEED 25000000
+// US_BAUD =  (CLOCK_SPEED / (16*(DEFAULT_BAUD))	// 25MHz / ( 16 * 38400) = 40.69  -> 41 -> 0x29
+#define US_BAUD 0x29
+
 #define TC_INIT  TC_CLKS_MCK2 | TC_LDBSTOP | TC_CAPT | TC_LDRA_RISING_EDGE | TC_LDRB_RISING_EDGE
 
 typedef enum  
@@ -72,6 +77,40 @@ inline void SetLED(uint16_t leds, IO_States state)
 		piobaseB->PIO_SODR = leds;	// Output setzen -> aus, low active
 		}
 	
+}
+
+char putch(char Zeichen) {
+   StructUSART* usartbase0 = USART0;
+
+   if(usartbase0->US_CSR & US_TXRDY) {
+      usartbase0->US_THR = Zeichen;
+   } else {
+      Zeichen = 0; // wenn keine Ausgabe
+   }
+   return Zeichen;
+}
+
+char getch(void) {
+   StructUSART* usartbase0 = USART0;
+   char Zeichen;
+
+   if(usartbase0->US_CSR & US_RXRDY) {
+      Zeichen = usartbase0->US_RHR;
+   } else {
+      Zeichen = 0;
+   }
+
+   return Zeichen;
+}
+
+void putstring(char* String) {
+   int i = 0;
+
+   while(String[i] != 0) {
+      while(!(putch(String[i]))) {
+      }
+      i = i + 1;
+   }
 }
 
 
@@ -149,6 +188,20 @@ void InterruptInit(void)
 	piobaseB->PIO_IER = KEY1 | KEY2 | KEY3;	// Enables interrupts in PIOB for the first three switches
 }
 
+int init_ser() {
+   StructPIO* piobaseA = PIOA_BASE;
+   StructPMC* pmcbase = PMC_BASE;
+   StructUSART* usartbase0 = USART0;
+
+   pmcbase->PMC_PCER = 0x4; // Clock f�r US0 einschalten
+   piobaseA->PIO_PDR = 0x18000; // US0 TxD und RxD
+   usartbase0->US_CR = 0xa0; // TxD und RxD disable
+   usartbase0->US_BRGR = US_BAUD; // Baud Rate Generator Register 38,1khz???
+   usartbase0->US_MR = 0x8c0; // Keine Parit�t, 8 Bit, MCKI
+   usartbase0->US_CR = 0x50; // TxD und RxD enable
+
+   return 0;
+}
 
 
 /**
@@ -180,6 +233,42 @@ int MessungderMasse(){
 
 void NumberToLEDS {
 	//convert int to corresponding LEDS in binary
+}
+
+int getIntLength(int value) {
+   int length = !value;
+   while(value) {
+      length++;
+      value /= 10;
+   }
+   return length;
+}
+
+void signedIntToString(int value, char* targetString) {
+   char* buf = targetString;
+   int length = getIntLength(value);
+   int isNegative = value < 0;
+
+   long longValue = value;
+
+   if(isNegative) {
+      *buf = '-';
+      longValue *= (-1);
+   } else {
+      length--;
+   }
+
+   buf += length;
+   long mod = 10;
+
+   while(mod <= 100000000000) {
+      int result = (longValue % mod) / (mod / 10);
+      *buf-- = 48 + result;
+      if(buf < targetString || (isNegative && buf <= targetString)) {
+         return;
+      }
+      mod *= 10;
+   }
 }
 
 int main(void){

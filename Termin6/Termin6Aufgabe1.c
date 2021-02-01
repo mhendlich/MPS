@@ -20,7 +20,7 @@ typedef enum { IO_SW1, IO_SW2, IO_SW3 } IO_Switches;
 
 typedef enum { IO_Off, IO_On } IO_States;
 
-int tara, delta, total;
+int step = 1;
 
 
 /**
@@ -52,23 +52,13 @@ inline uint8_t IsKeydown(const IO_Switches keyNr) {
    return 0;
 }
 
-inline void SetLED(uint16_t leds, IO_States state) {
+inline void setLEDs(int numberToShow) {
    StructPIO* piobaseB = PIOB_BASE;
 
-   // Sind die gewünschten LEDs schon unter der Kontrolle der PIO?
-   if(~piobaseB->PIO_PSR & leds) {
-      piobaseB->PIO_PER = leds;
+   piobaseB->PIO_SODR = ALL_LEDS; // clear all leds
 
-      // Sind die gewünschten LEDs als output konfiguriert?
-      if(~piobaseB->PIO_OSR & leds)
-         piobaseB->PIO_OER = leds;
-   }
-
-   if(state == IO_On) {
-      piobaseB->PIO_CODR = leds; // Output clearen -> an, low active
-   } else {
-      piobaseB->PIO_SODR = leds; // Output setzen -> aus, low active
-   }
+   uint16_t leds = numberToShow << 8;
+   piobaseB->PIO_CODR = leds; // Output clearen -> an, low active
 }
 
 char putch(char Zeichen) {
@@ -82,19 +72,7 @@ char putch(char Zeichen) {
    return Zeichen;
 }
 
-char getch(void) {
-   StructUSART* usartbase0 = USART0;
-   char Zeichen;
-
-   if(usartbase0->US_CSR & US_RXRDY) {
-      Zeichen = usartbase0->US_RHR;
-   } else {
-      Zeichen = 0;
-   }
-
-   return Zeichen;
-}
-
+// TODO: handle \n ?
 void putstring(char* String) {
    int i = 0;
 
@@ -104,7 +82,6 @@ void putstring(char* String) {
       i = i + 1;
    }
 }
-
 
 /**
  *	Interrupt
@@ -116,11 +93,17 @@ void taste_irq_handler(void) {
    StructAIC* aicbase = AIC_BASE; // Basisadresse des Advanced Interrupt Controller
 
    if(IsKeydown(IO_SW1)) {
-      // tara
+      if(step == 1) {
+         step = 2;
+      }
    } else if(IsKeydown(IO_SW2)) {
-      // start wiegen
+      if(step == 2) {
+         step = 3;
+      }
    } else if(IsKeydown(IO_SW3)) {
-      // ende wiegen
+      if(step == 3) {
+         step = 4;
+      }
    }
 
    aicbase->AIC_EOICR = piobaseB->PIO_ISR; // End of Interrupt
@@ -263,23 +246,80 @@ int main(void) {
    Timer_Init();
    InterruptInit();
 
-   char* taraString;
-   signedIntToString(tara, taraString);
+   while(1) {
+      int tara = 0;
+      int brutto = 0;
+      int netto = 0;
 
-   char* deltaString;
-   signedIntToString(delta, deltaString);
+      putstring("Moin\n Drücken sie die Taste 1 um fortzufahren");
 
-   char* totalString;
-   signedIntToString(total, totalString);
 
-   putstring("Hallo\nTara:");
-   putstring(taraString);
-   putstring("\nDelta");
-   putstring(deltaString);
-   putstring("\nTotal");
-   putstring(totalString);
+      // wait for interrupt SW1 that starts the tara step
+      while(step == 1) {
+      }
 
-   while(1)
-      ;
+      putstring("Bitte legen sie das Tara-Gewicht auf\n");
+      putstring("Klicken sie danach die Taste 2 um den Wiegevorgang der Münzen zu starten\n");
+
+      // repeat measurement until SW2 is pressed (which sets step to 3)
+      long taraMeasures = 0;
+      long taraMeasurementsSum = 0;
+      while(step == 2) {
+         taraMeasurementsSum += MessungderMasse();
+         taraMeasures++;
+         tara = taraMeasurementsSum / taraMeasures;
+      };
+
+      putstring("Bitte legen sie ihre Münzen auf\n");
+      putstring("Klicken sie danach die Taste 3 um den Wiegevorgang abzuschließen\n");
+
+      // wait for interrupt SW3 that ends the weighting process
+      while(step == 3) {
+         brutto = MessungderMasse();
+         netto = brutto - tara;
+
+         char* nettoString;
+         signedIntToString(netto, nettoString);
+         putstring("Netto: ");
+         putstring(nettoString);
+         putstring("\n");
+
+         setLEDs(netto);
+      }
+
+      // output amount to sio
+
+      char* taraString;
+      signedIntToString(tara, taraString);
+      char* bruttoString;
+      signedIntToString(brutto, bruttoString);
+      char* nettoString;
+      signedIntToString(netto, nettoString);
+
+      putstring("Tara: ");
+      putstring(taraString);
+      putstring("\nBrutto: ");
+      putstring(bruttoString);
+      putstring("\nNetto: ");
+      putstring(nettoString);
+
+      step = 1;
+   }
+
+
    return 0;
+}
+
+int intToBinary(int i, char* target) {
+   int n = i;
+   int r;
+   do {
+      r = n % 2;
+      if(r == 1)
+         target = 1;
+      else
+         target = 0;
+      n = n / 2;
+      target++;
+   } while(n > 0);
 }

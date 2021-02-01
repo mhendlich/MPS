@@ -2,6 +2,9 @@
 #include "../h/tc.h"
 #include "../h/pmc.h"
 #include "../h/aic.h"
+#include "../h/usart.h"
+
+#include <stdint.h>
 
 const static int C1 = 2000;
 const static int C2 = 0;
@@ -22,6 +25,8 @@ typedef enum
 {
 	IO_Off, IO_On
 } IO_States;
+
+int tara, delta, total;
 
 
 
@@ -231,8 +236,8 @@ int MessungderMasse(){
 	return (C1 * (((float)capturediff4 / capturediff7)-1)-C2);
 }
 
-void NumberToLEDS {
-	//convert int to corresponding LEDS in binary
+void NumberToLEDS() {
+	return;//convert int to corresponding LEDS in binary
 }
 
 int getIntLength(int value) {
@@ -272,5 +277,27 @@ void signedIntToString(int value, char* targetString) {
 }
 
 int main(void){
+init_ser();
+PIO_Init();
+Timer_Init();
+InterruptInit();
+
+char* taraString; 
+signedIntToString(tara, taraString);
+
+char* deltaString; 
+signedIntToString(delta, deltaString);
+
+char* totalString; 
+signedIntToString(total, totalString);
+
+putstring("Hallo\nTara:");
+putstring(taraString);
+putstring("\nDelta");
+putstring(deltaString);
+putstring("\nTotal");
+putstring(totalString);
+
+while(1);
 return 0;
 }

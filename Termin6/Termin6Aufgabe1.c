@@ -22,6 +22,8 @@ typedef enum { IO_Off, IO_On } IO_States;
 
 int step = 1;
 
+const static float muenzgewicht;
+
 
 /**
  *	Hardware
@@ -72,7 +74,6 @@ char putch(char Zeichen) {
    return Zeichen;
 }
 
-// TODO: handle \n ?
 void putstring(char* String) {
    int i = 0;
 
@@ -200,10 +201,6 @@ int MessungderMasse() {
    return (C1 * (((float)capturediff4 / capturediff7) - 1) - C2);
 }
 
-void NumberToLEDS() {
-   return; // convert int to corresponding LEDS in binary
-}
-
 int getIntLength(int value) {
    int length = !value;
    while(value) {
@@ -251,7 +248,7 @@ int main(void) {
       int brutto = 0;
       int netto = 0;
 
-      putstring("Moin\r\n Drücken sie die Taste 1 um fortzufahren\r\n");
+      putstring("Moin\r\nDruecken sie die Taste 1 um fortzufahren\r\n");
 
 
       // wait for interrupt SW1 that starts the tara step
@@ -260,7 +257,7 @@ int main(void) {
       }
 
       putstring("Bitte legen sie das Tara-Gewicht auf\r\n");
-      putstring("Klicken sie danach die Taste 2 um den Wiegevorgang der Münzen zu starten\r\n");
+      putstring("Druecken sie danach die Taste 2 um den Wiegevorgang der Muenzen zu starten\r\n");
 
       // repeat measurement until SW2 is pressed (which sets step to 3)
       int i = 0;
@@ -275,7 +272,7 @@ int main(void) {
       };
 
       putstring("Bitte legen sie ihre Münzen auf\r\n");
-      putstring("Klicken sie danach die Taste 3 um den Wiegevorgang abzuschließen\r\n");
+      putstring("Druecken sie danach die Taste 3 um den Wiegevorgang abzuschließen\r\n");
 
       // wait for interrupt SW3 that ends the weighting process
       while(step == 3) {
@@ -288,16 +285,18 @@ int main(void) {
          putstring(nettoString);
          putstring("\r\n");
 
-         setLEDs(netto);
+         //needs averaging out first
+         int show = netto/muenzgewicht;
+         setLEDs(show);
       }
 
       // output amount to sio
 
-      char* taraString;
+      char taraString[12] = "";
       signedIntToString(tara, taraString);
-      char* bruttoString;
+      char bruttoString[12] = "";
       signedIntToString(brutto, bruttoString);
-      char* nettoString;
+      char nettoString[12] = "";
       signedIntToString(netto, nettoString);
 
       putstring("Tara: ");
@@ -306,6 +305,9 @@ int main(void) {
       putstring(bruttoString);
       putstring("\r\nNetto: ");
       putstring(nettoString);
+      putstring("\r\n");
+      putstring("\r\n");
+      putstring("\r\n");
 
       step = 1;
    }

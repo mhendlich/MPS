@@ -22,7 +22,7 @@ typedef enum { IO_Off, IO_On } IO_States;
 
 int step = 1;
 
-const static float muenzgewicht;
+const static int muenzgewicht = 5735;
 
 
 /**
@@ -59,7 +59,7 @@ inline void setLEDs(int numberToShow) {
 
    piobaseB->PIO_SODR = ALL_LEDS; // clear all leds
 
-   uint16_t leds = numberToShow << 8;
+   uint16_t leds = reverseBits(numberToShow) << 8;
    piobaseB->PIO_CODR = leds; // Output clearen -> an, low active
 }
 
@@ -198,8 +198,15 @@ int MessungderMasse() {
    int captureRB7 = tcbase5->TC_RB;
    int capturediff7 = abs(captureRB7 - captureRA7);
 
-   return (C1 * (((float)capturediff4 / capturediff7) - 1) - C2);
+   return (C1 * (((float)capturediff4*1000 / capturediff7) - 1000) - C2*1000);
 }
+
+int reverseBits(int a){
+return ((a & 0x1) << 7) | ((a & 0x2) << 5) |
+	((a & 0x4) << 3) | ((a & 0x8) << 1) |
+	((a & 0x10) >> 1) | ((a & 0x20) >> 3) |
+	((a & 0x40) >> 5) | ((a & 0x80) >> 7);
+} 
 
 int getIntLength(int value) {
    int length = !value;
@@ -268,16 +275,22 @@ int main(void) {
          taraMeasures++;
          tara = taraMeasurementsSum / taraMeasures;
 	 i++;
-	 if(i==10)step=3;
+	 if(i==1000)step=3;
       };
 
-      putstring("Bitte legen sie ihre Münzen auf\r\n");
-      putstring("Druecken sie danach die Taste 3 um den Wiegevorgang abzuschließen\r\n");
-
+      putstring("Bitte legen sie ihre Muenzen auf\r\n");
+      putstring("Druecken sie danach die Taste 3 um den Wiegevorgang abzuschliessen\r\n");
+	tara =0;
       // wait for interrupt SW3 that ends the weighting process
+      int k = 0;
+      unsigned long bruttoMeasures = 0;
+      unsigned long bruttoMeasurementsSum = 0;
       while(step == 3) {
-         brutto = MessungderMasse();
-         netto = brutto - tara;
+         bruttoMeasurementsSum += MessungderMasse();
+         bruttoMeasures++;
+         brutto = bruttoMeasurementsSum / bruttoMeasures;
+         
+	 netto = brutto - tara;
 
          char nettoString[12] = "";
          signedIntToString(netto, nettoString);

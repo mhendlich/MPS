@@ -247,7 +247,6 @@ int reverseBits(int a) {
 }
 
 int getIntLength(int value) {
-   //
    int length = !value;
    while(value) {
       length++;
@@ -261,8 +260,10 @@ void signedIntToString(int value, char* targetString) {
    int length = getIntLength(value);
    int isNegative = value < 0;
 
+   // use long to handle edge cases with biggest or smallest signed int
    long longValue = value;
 
+   // if value is negative: put '-' into first char and invert it arithmetically
    if(isNegative) {
       *buf = '-';
       longValue *= (-1);
@@ -270,9 +271,11 @@ void signedIntToString(int value, char* targetString) {
       length--;
    }
 
+   // jump to last needed character space
    buf += length;
    long mod = 10;
 
+   // calculate each character by dividing by ever increasing multiples of 10
    while(mod <= 100000000000) {
       int result = (longValue % mod) / (mod / 10);
       *buf-- = 48 + result;
@@ -284,6 +287,7 @@ void signedIntToString(int value, char* targetString) {
 }
 
 int main(void) {
+   // initialize all needed components of the controller
    init_ser();
    PIO_Init();
    Timer_Init();
@@ -299,7 +303,7 @@ int main(void) {
 
       // wait for interrupt SW1 that starts the tara step
       while(step == 1) {
-         step = 2;
+         // step = 2;
       }
 
       putstring("Bitte legen sie das Tara-Gewicht auf\r\n");
@@ -310,40 +314,47 @@ int main(void) {
       long taraMeasures = 0;
       long taraMeasurementsSum = 0;
       while(step == 2) {
+         // measure tara
          taraMeasurementsSum += MessungderMasse();
+
+         // average out tara measures
          taraMeasures++;
          tara = taraMeasurementsSum / taraMeasures;
-         i++;
+         /* i++;
          if(i == 1000)
-            step = 3;
+            step = 3; */
       };
 
       putstring("Bitte legen sie ihre Muenzen auf\r\n");
       putstring("Druecken sie danach die Taste 3 um den Wiegevorgang abzuschliessen\r\n");
       tara = 0;
-      // wait for interrupt SW3 that ends the weighting process
       int k = 0;
       unsigned long bruttoMeasures = 0;
       unsigned long bruttoMeasurementsSum = 0;
+      // wait for interrupt SW3 that ends the weighting process
       while(step == 3) {
+         // measure again
          bruttoMeasurementsSum += MessungderMasse();
+
+         // average brutto measures
          bruttoMeasures++;
          brutto = bruttoMeasurementsSum / bruttoMeasures;
 
          netto = brutto - tara;
 
+         // print netto weight
          char nettoString[12] = "";
          signedIntToString(netto, nettoString);
          putstring("Netto: ");
          putstring(nettoString);
          putstring("\r\n");
 
-         // needs averaging out first
+         // calculate and show number of coins
          int show = netto / muenzgewicht;
          setLEDs(show);
       }
 
-      // output amount to sio
+      // output all information to SIO
 
       char taraString[12] = "";
       signedIntToString(tara, taraString);
@@ -362,6 +373,7 @@ int main(void) {
       putstring("\r\n");
       putstring("\r\n");
 
+      // reset state machine and start again
       step = 1;
    }
 

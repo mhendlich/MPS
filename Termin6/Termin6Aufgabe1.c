@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 
+// constants for scale weight calculation
 const static int C1 = 2000;
 const static int C2 = 0;
 
@@ -14,14 +15,17 @@ const static int C2 = 0;
 // US_BAUD =  (CLOCK_SPEED / (16*(DEFAULT_BAUD))	// 25MHz / ( 16 * 38400) = 40.69  -> 41 -> 0x29
 #define US_BAUD 0x29
 
+// flags for timer channel initialization
 #define TC_INIT TC_CLKS_MCK2 | TC_LDBSTOP | TC_CAPT | TC_LDRA_RISING_EDGE | TC_LDRB_RISING_EDGE
 
 typedef enum { IO_SW1, IO_SW2, IO_SW3 } IO_Switches;
 
 typedef enum { IO_Off, IO_On } IO_States;
 
+// current step of th finite state machine
 int step = 1;
 
+// weight of the coin we use in mg
 const static int muenzgewicht = 5735;
 
 
@@ -38,18 +42,18 @@ inline uint8_t IsKeydown(const IO_Switches keyNr) {
 
    const uint8_t key = keys[keyNr];
 
-   // Ist die gew�nschte Tasten schon unter der Kontrolle der PIO?
+   // check if the chosen keys are already under control of the PIO
    if(~piobaseB->PIO_PSR & key) {
       piobaseB->PIO_PER = key;
 
-      // Ist die gew�nschte Taste als input konfiguriert?
+      // check if the chosen keys are configured as input
       if(piobaseB->PIO_OSR & key)
          piobaseB->PIO_ODR = key;
    }
 
-   // Ist der PIN f�r gew�nschen Key low?
+   // check if data status register of the chosen key is low
    if((~piobaseB->PIO_PDSR & key))
-      return 1; // true, Taste ist gedr�ckt
+      return 1; // if yes, the key is pressed
 
    return 0;
 }
@@ -59,17 +63,24 @@ inline void setLEDs(int numberToShow) {
 
    piobaseB->PIO_SODR = ALL_LEDS; // clear all leds
 
+   // shift number 8 bits to the left (as the LEDs on the board are connected to pins 7 to 14 and wa start at bit 0)
+   // we also need to reverse the bits inside of that byte as the LEDs are connected the other way around
    uint16_t leds = reverseBits(numberToShow) << 8;
-   piobaseB->PIO_CODR = leds; // Output clearen -> an, low active
+
+   // clear output for the selected leds as they are low active
+   piobaseB->PIO_CODR = leds;
 }
 
 char putch(char Zeichen) {
    StructUSART* usartbase0 = USART0;
 
+   // check if transmitter of this channel is ready (empty buffer)
    if(usartbase0->US_CSR & US_TXRDY) {
+      // save chracter inti output buffer
       usartbase0->US_THR = Zeichen;
    } else {
-      Zeichen = 0; // wenn keine Ausgabe
+      // return 0 to indicate that transmission was not yet possible
+      Zeichen = 0;
    }
    return Zeichen;
 }
@@ -77,7 +88,10 @@ char putch(char Zeichen) {
 void putstring(char* String) {
    int i = 0;
 
+   // iterate through the characters of the given string
    while(String[i] != 0) {
+
+      // try to output the char, if it fails try again until it goes through successfully
       while(!(putch(String[i]))) {
       }
       i = i + 1;
@@ -87,12 +101,14 @@ void putstring(char* String) {
 /**
  *	Interrupt
  */
+// label function as interrupt
 void taste_irq_handler(void) __attribute__((interrupt));
 
 void taste_irq_handler(void) {
-   StructPIO* piobaseB = PIOB_BASE; // Basisadresse PIO B
-   StructAIC* aicbase = AIC_BASE; // Basisadresse des Advanced Interrupt Controller
+   StructPIO* piobaseB = PIOB_BASE;
+   StructAIC* aicbase = AIC_BASE;
 
+   // use keys to step through our finite state machine
    if(IsKeydown(IO_SW1)) {
       if(step == 1) {
          step = 2;
@@ -107,7 +123,8 @@ void taste_irq_handler(void) {
       }
    }
 
-   aicbase->AIC_EOICR = piobaseB->PIO_ISR; // End of Interrupt
+   // signal end of interrupt
+   aicbase->AIC_EOICR = piobaseB->PIO_ISR;
 }
 
 
@@ -116,19 +133,30 @@ void taste_irq_handler(void) {
  */
 void PIO_Init(void) {
    StructPMC* pmcbase = PMC_BASE;
-   pmcbase->PMC_PCER = 0x06C00; // Clock fuer PIOA, PIOB, Timer4, Timer5 einschalten
 
-   StructPIO* piobaseA = PIOA_BASE; // Capture Lanes f�r Waage
+   // enable clocks for PIOA, PIOB, Timer4 and Timer5
+   pmcbase->PMC_PCER = 0x06C00;
+
+   StructPIO* piobaseA = PIOA_BASE;
+   // disable PIO lanes used by the scale (to prevent PIO taking control of them and disabling timer access)
    piobaseA->PIO_PDR = 0x090;
 
-   StructPIO* piobaseB = PIOB_BASE; // LEDS&KEYS
+   StructPIO* piobaseB = PIOB_BASE;
+
+   // enable PIO control of all LEDs and all 3 key pins
    piobaseB->PIO_PER = ALL_LEDS | KEY1 | KEY2 | KEY3;
 
+   // set key pins as input pins by disabling them as output
    piobaseB->PIO_ODR = KEY1 | KEY2 | KEY3;
+
+   // set all led pins as output pins
    piobaseB->PIO_OER = ALL_LEDS;
 }
 
 void Timer_Init(void) {
+   // initialize timer channel 4 and 5
+   // disable them, set the needed flags and reenable them
+
    StructTC* tcbase4 = TCB4_BASE;
    StructTC* tcbase5 = TCB5_BASE;
 
@@ -161,12 +189,23 @@ int init_ser() {
    StructPMC* pmcbase = PMC_BASE;
    StructUSART* usartbase0 = USART0;
 
-   pmcbase->PMC_PCER = 0x4; // Clock f�r US0 einschalten
-   piobaseA->PIO_PDR = 0x18000; // US0 TxD und RxD
-   usartbase0->US_CR = 0xa0; // TxD und RxD disable
-   usartbase0->US_BRGR = US_BAUD; // Baud Rate Generator Register 38,1khz???
-   usartbase0->US_MR = 0x8c0; // Keine Parit�t, 8 Bit, MCKI
-   usartbase0->US_CR = 0x50; // TxD und RxD enable
+   // enable clock for USART0
+   pmcbase->PMC_PCER = 0x4;
+
+   // disable PIO control over pins we use for serial IO
+   piobaseA->PIO_PDR = 0x18000;
+
+   // disable transmit and receive while we set things up
+   usartbase0->US_CR = 0xa0;
+
+   // set baud rate as configured before
+   usartbase0->US_BRGR = US_BAUD;
+
+   // set mode to: no parity, 8 bit per word, MCKI (master clock without any division)
+   usartbase0->US_MR = 0x8c0;
+
+   // reenable transmit and receive
+   usartbase0->US_CR = 0x50;
 
    return 0;
 }
@@ -198,17 +237,17 @@ int MessungderMasse() {
    int captureRB7 = tcbase5->TC_RB;
    int capturediff7 = abs(captureRB7 - captureRA7);
 
-   return (C1 * (((float)capturediff4*1000 / capturediff7) - 1000) - C2*1000);
+   return (C1 * (((float)capturediff4 * 1000 / capturediff7) - 1000) - C2 * 1000);
 }
 
-int reverseBits(int a){
-return ((a & 0x1) << 7) | ((a & 0x2) << 5) |
-	((a & 0x4) << 3) | ((a & 0x8) << 1) |
-	((a & 0x10) >> 1) | ((a & 0x20) >> 3) |
-	((a & 0x40) >> 5) | ((a & 0x80) >> 7);
-} 
+int reverseBits(int a) {
+   // reverse lowest 8 bits in a byte by shifting each one to its new place and ORing the results together
+   return ((a & 0x1) << 7) | ((a & 0x2) << 5) | ((a & 0x4) << 3) | ((a & 0x8) << 1) |
+          ((a & 0x10) >> 1) | ((a & 0x20) >> 3) | ((a & 0x40) >> 5) | ((a & 0x80) >> 7);
+}
 
 int getIntLength(int value) {
+   //
    int length = !value;
    while(value) {
       length++;
@@ -260,7 +299,7 @@ int main(void) {
 
       // wait for interrupt SW1 that starts the tara step
       while(step == 1) {
-      step=2;
+         step = 2;
       }
 
       putstring("Bitte legen sie das Tara-Gewicht auf\r\n");
@@ -274,13 +313,14 @@ int main(void) {
          taraMeasurementsSum += MessungderMasse();
          taraMeasures++;
          tara = taraMeasurementsSum / taraMeasures;
-	 i++;
-	 if(i==1000)step=3;
+         i++;
+         if(i == 1000)
+            step = 3;
       };
 
       putstring("Bitte legen sie ihre Muenzen auf\r\n");
       putstring("Druecken sie danach die Taste 3 um den Wiegevorgang abzuschliessen\r\n");
-	tara =0;
+      tara = 0;
       // wait for interrupt SW3 that ends the weighting process
       int k = 0;
       unsigned long bruttoMeasures = 0;
@@ -289,8 +329,8 @@ int main(void) {
          bruttoMeasurementsSum += MessungderMasse();
          bruttoMeasures++;
          brutto = bruttoMeasurementsSum / bruttoMeasures;
-         
-	 netto = brutto - tara;
+
+         netto = brutto - tara;
 
          char nettoString[12] = "";
          signedIntToString(netto, nettoString);
@@ -298,8 +338,8 @@ int main(void) {
          putstring(nettoString);
          putstring("\r\n");
 
-         //needs averaging out first
-         int show = netto/muenzgewicht;
+         // needs averaging out first
+         int show = netto / muenzgewicht;
          setLEDs(show);
       }
 

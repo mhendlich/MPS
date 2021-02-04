@@ -7,13 +7,13 @@
 #include <stdint.h>
 
 // constants for scale weight calculation
-const static int C1 = 2000;
-const static int C2 = 0;
+const static int C1 = 18030;
+const static int C2 = 40;
 
 #define DEFAULT_BAUD 38400
 #define CLOCK_SPEED 25000000
 // US_BAUD =  (CLOCK_SPEED / (16*(DEFAULT_BAUD))	// 25MHz / ( 16 * 38400) = 40.69  -> 41 -> 0x29
-#define US_BAUD 0x29
+#define US_BAUD 0x1b
 
 // flags for timer channel initialization
 #define TC_INIT TC_CLKS_MCK2 | TC_LDBSTOP | TC_CAPT | TC_LDRA_RISING_EDGE | TC_LDRB_RISING_EDGE
@@ -26,7 +26,7 @@ typedef enum { IO_Off, IO_On } IO_States;
 int step = 1;
 
 // weight of the coin we use in mg
-const static int muenzgewicht = 5735;
+const static int muenzgewicht = 3060;
 
 
 /**
@@ -209,7 +209,7 @@ int init_ser() {
    // set mode to: no parity, 8 bit per word, MCKI (master clock without any division), 1 stop bit,
    // normal mode
    // usartbase0->US_MR = 0x8c0;
-   usartbase0->US_MR = US_CHRL_8 | US_PAR_NO | US_CLKS_MCK | US_NBSTOP_1 | US_CHMODE_NORMAL;
+   usartbase0->US_MR = US_CHRL_7 | US_PAR_NO | US_CLKS_MCK | US_NBSTOP_1 | US_CHMODE_NORMAL;
 
    // reenable transmit and receive
    // usartbase0->US_CR = 0x50;
@@ -315,36 +315,38 @@ int main(void) {
       int brutto = 0;
       int netto = 0;
 
-      putstring("Moin\r\nDruecken sie die Taste 1 um fortzufahren\r\n");
+      putstring("Willkommen zur Muenzenwaage\r\n");
+      putstring("Bitte legen sie das Tara-Gewicht auf\r\n");
+      putstring("Druecken sie die Taste 1 um fortzufahren\r\n");
 
 
       // wait for interrupt SW1 that starts the tara step
       while(step == 1) {
-         // step = 2;
       }
 
-      putstring("Bitte legen sie das Tara-Gewicht auf\r\n");
+
       putstring("Druecken sie danach die Taste 2 um den Wiegevorgang der Muenzen zu starten\r\n");
 
       // repeat measurement until SW2 is pressed (which sets step to 3)
       int i = 0;
       long taraMeasures = 0;
       long taraMeasurementsSum = 0;
-      while(step == 2) {
-         // measure tara
-         taraMeasurementsSum += MessungderMasse();
+      while(i!=100){
+        // measure tara
+        taraMeasurementsSum += MessungderMasse();
 
-         // average out tara measures
-         taraMeasures++;
-         tara = taraMeasurementsSum / taraMeasures;
-         /* i++;
-         if(i == 1000)
-            step = 3; */
+       	// average out tara measures
+        taraMeasures++;
+        tara = taraMeasurementsSum / taraMeasures;
+	i++;
+	}
+     
+      while(step == 2) {
       };
 
       putstring("Bitte legen sie ihre Muenzen auf\r\n");
       putstring("Druecken sie danach die Taste 3 um den Wiegevorgang abzuschliessen\r\n");
-      tara = 0;
+
       int k = 0;
       unsigned long bruttoMeasures = 0;
       unsigned long bruttoMeasurementsSum = 0;

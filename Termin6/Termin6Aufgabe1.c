@@ -331,16 +331,16 @@ int main(void) {
       int i = 0;
       long taraMeasures = 0;
       long taraMeasurementsSum = 0;
-      while(i!=100){
-        // measure tara
-        taraMeasurementsSum += MessungderMasse();
+      while(i != 100) {
+         // measure tara
+         taraMeasurementsSum += MessungderMasse();
 
-       	// average out tara measures
-        taraMeasures++;
-        tara = taraMeasurementsSum / taraMeasures;
-	i++;
-	}
-     
+         // average out tara measures
+         taraMeasures++;
+         tara = taraMeasurementsSum / taraMeasures;
+         i++;
+      }
+
       while(step == 2) {
       };
 
@@ -348,16 +348,33 @@ int main(void) {
       putstring("Druecken sie danach die Taste 3 um den Wiegevorgang abzuschliessen\r\n");
 
       int k = 0;
-      unsigned long bruttoMeasures = 0;
-      unsigned long bruttoMeasurementsSum = 0;
+
+      int measuresNum = 100;
+      int measures[measuresNum];
+      for(int m = 0; m < measuresNum; i++) {
+         measures[m] = 0;
+      }
+      int measureIndex = 0;
+
       // wait for interrupt SW3 that ends the weighting process
       while(step == 3) {
          // measure again
-         bruttoMeasurementsSum += MessungderMasse();
+         int measure = MessungderMasse();
+         measures[measureIndex] = measure;
+         measureIndex++;
+         if(measureIndex == measuresNum) {
+            measureIndex = 0;
+         }
 
-         // average brutto measures
-         bruttoMeasures++;
-         brutto = bruttoMeasurementsSum / bruttoMeasures;
+         int measureSum;
+         for(int f = 0; f < measuresNum; f++) {
+            if(measures[f] == 0) {
+               measures[f] = measure;
+            }
+            measureSum += measures[f];
+         }
+
+         int brutto = measureSum / measuresNum;
 
          netto = brutto - tara;
 

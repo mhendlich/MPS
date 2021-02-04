@@ -135,11 +135,14 @@ void PIO_Init(void) {
    StructPMC* pmcbase = PMC_BASE;
 
    // enable clocks for PIOA, PIOB, Timer4 and Timer5
-   pmcbase->PMC_PCER = 0x06C00;
+   // pmcbase->PMC_PCER = 0x06C00;
+   pmcbase->PMC_PCER = (1 << PIOB_ID) | (1 << PIOA_ID) | (1 << TC5_ID) | (1 << TC4_ID);
 
    StructPIO* piobaseA = PIOA_BASE;
-   // disable PIO lanes used by the scale (to prevent PIO taking control of them and disabling timer access)
-   piobaseA->PIO_PDR = 0x090;
+
+   // disable PIO lanes used by the scale (to prevent PIO taking control of them and disabling timer
+   // access) piobaseA->PIO_PDR = 0x090;
+   piobaseA->PIO_PDR = (1 << PIOTIOA5) | (1 << PIOTIOA4);
 
    StructPIO* piobaseB = PIOB_BASE;
 
@@ -190,22 +193,27 @@ int init_ser() {
    StructUSART* usartbase0 = USART0;
 
    // enable clock for USART0
-   pmcbase->PMC_PCER = 0x4;
+   pmcbase->PMC_PCER = PMC_US0;
 
    // disable PIO control over pins we use for serial IO
-   piobaseA->PIO_PDR = 0x18000;
+   // piobaseA->PIO_PDR = 0x18000;
+   piobaseA->PIO_PDR = (1 << PIOTXD0) | (1 << PIORXD0);
 
    // disable transmit and receive while we set things up
-   usartbase0->US_CR = 0xa0;
+   // usartbase0->US_CR = 0xa0;
+   usartbase0->US_CR = US_RXDIS | US_TXDIS;
 
    // set baud rate as configured before
    usartbase0->US_BRGR = US_BAUD;
 
-   // set mode to: no parity, 8 bit per word, MCKI (master clock without any division)
-   usartbase0->US_MR = 0x8c0;
+   // set mode to: no parity, 8 bit per word, MCKI (master clock without any division), 1 stop bit,
+   // normal mode
+   // usartbase0->US_MR = 0x8c0;
+   usartbase0->US_MR = US_CHRL_8 | US_PAR_NO | US_CLKS_MCK | US_NBSTOP_1 | US_CHMODE_NORMAL;
 
    // reenable transmit and receive
-   usartbase0->US_CR = 0x50;
+   // usartbase0->US_CR = 0x50;
+   usartbase0->US_CR = US_RXEN | US_TXEN;
 
    return 0;
 }
@@ -217,26 +225,35 @@ int init_ser() {
 int MessungderMasse() {
    StructTC* tcbase4 = TCB4_BASE;
    StructTC* tcbase5 = TCB5_BASE;
+
+   // read status registers of channels 4 and 5 to clear them
    int buf;
    buf = tcbase4->TC_SR;
    buf = tcbase5->TC_SR;
+
+   // reset counter and start clock
    tcbase4->TC_CCR = TC_SWTRG;
    tcbase5->TC_CCR = TC_SWTRG;
 
-   while(!(tcbase4->TC_SR & 0x40))
-      ; // Capture Register B wurde geladen Messung abgeschlossen
+   // wait for register b to be set
+   while(!(tcbase4->TC_SR & TC_LDRBS)) {
+   }
 
-   int captureRA4 = tcbase4->TC_RA; //
+   // get diff between ra and rb
+   int captureRA4 = tcbase4->TC_RA;
    int captureRB4 = tcbase4->TC_RB;
    int capturediff4 = abs(captureRB4 - captureRA4);
 
-   while(!(tcbase5->TC_SR & 0x40))
-      ; // Capture Register B wurde geladen Messung abgeschlossen
+   // wait for register b to be set
+   while(!(tcbase5->TC_SR & TC_LDRBS)) {
+   }
 
-   int captureRA7 = tcbase5->TC_RA; //
+   // get diff between ra and rb
+   int captureRA7 = tcbase5->TC_RA;
    int captureRB7 = tcbase5->TC_RB;
    int capturediff7 = abs(captureRB7 - captureRA7);
 
+   // formula for getting the weight from the frequences, adjusted to return in mg instead of g
    return (C1 * (((float)capturediff4 * 1000 / capturediff7) - 1000) - C2 * 1000);
 }
 
